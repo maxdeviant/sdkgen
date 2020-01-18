@@ -112,8 +112,8 @@ public static async Task<{return_type}> {function_name}({parameter_list})
     }};
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-    var response = await httpClient.SendAsync(request);
-    var responseBody = await response.Content.ReadAsStringAsync();
+    var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+    var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
     return JsonConvert.DeserializeObject<{return_type}>(responseBody);
 }}
