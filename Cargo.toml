@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "src/sdkgen",
+    "src/sdkgen_core",
+
+    # Generators
+    "src/sdkgen_dotnet"
+]
