@@ -11,6 +11,9 @@ dependencies = [
 [[package]]
 name = "emitter_csharp"
 version = "0.1.0"
+dependencies = [
+ "sdkgen_core 0.1.0",
+]
 
 [[package]]
 name = "itoa"
@@ -43,6 +46,7 @@ name = "sdkgen"
 version = "0.1.0"
 dependencies = [
  "apidoc 0.1.0",
+ "emitter_csharp 0.1.0",
  "sdkgen_core 0.1.0",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.44 (registry+https://github.com/rust-lang/crates.io-index)",

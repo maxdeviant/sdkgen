@@ -1,5 +1,10 @@
+use std::collections::HashMap;
+
 use apidoc;
-use sdkgen_core::{HttpMethod, Primitive, Route, Type, UrlParameter};
+use emitter_csharp::CsharpSdk;
+use sdkgen_core::{
+    GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, UrlParameter,
+};
 
 fn convert_http_method(method: apidoc::HttpMethod) -> HttpMethod {
     match method {
@@ -54,6 +59,32 @@ fn convert_route(route: apidoc::Route) -> Route {
     }
 }
 
+fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
+    let mut versions = HashMap::new();
+
+    for route in routes.iter() {
+        let version = versions.entry(&route.version).or_insert(HashMap::new());
+
+        let resource_routes = version.entry(&route.group).or_insert(Vec::<Route>::new());
+
+        resource_routes.push(route.clone());
+    }
+
+    versions
+        .into_iter()
+        .map(|(version, resources)| SdkVersion {
+            version: version.clone(),
+            resources: resources
+                .into_iter()
+                .map(|(resource, routes)| SdkResource {
+                    resource: resource.clone(),
+                    routes,
+                })
+                .collect(),
+        })
+        .collect()
+}
+
 fn main() {
     let json = include_str!("../../../../../serve_apidoc/api_data.json");
 
@@ -62,7 +93,7 @@ fn main() {
 
     let routes: Vec<Route> = routes.into_iter().map(convert_route).collect();
 
-    println!("{:?}", routes);
+    let versions = versions_from_routes(routes);
 
-    println!("Hello, world!");
+    CsharpSdk.generate_sdk(versions, "./csharp");
 }

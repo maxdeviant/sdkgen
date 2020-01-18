@@ -1,4 +1,10 @@
-#[derive(Debug)]
+use std::path::PathBuf;
+
+pub trait GenerateSdk {
+    fn generate_sdk<O: Into<PathBuf>>(&self, versions: Vec<SdkVersion>, output_directory: O);
+}
+
+#[derive(Debug, Clone)]
 pub enum Primitive {
     String,
     Boolean,
@@ -7,7 +13,7 @@ pub enum Primitive {
     Double,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Type {
     Primitive(Primitive),
     Array(Box<Type>),
@@ -31,7 +37,7 @@ impl Type {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Member {
     pub name: String,
     pub description: Option<String>,
@@ -39,7 +45,7 @@ pub struct Member {
     pub is_optional: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum HttpMethod {
     Get,
     Post,
@@ -47,7 +53,7 @@ pub enum HttpMethod {
     Delete,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Route {
     pub name: String,
     pub method: HttpMethod,
@@ -59,7 +65,7 @@ pub struct Route {
     pub return_type: Option<Type>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UrlParameter {
     pub name: String,
     pub ty: Primitive,
