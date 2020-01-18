@@ -85,7 +85,7 @@ fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
         .collect()
 }
 
-fn main() {
+fn main() -> std::io::Result<()> {
     let json = include_str!("../../../../../serve_apidoc/api_data.json");
 
     let routes: Vec<apidoc::Route> =
@@ -95,5 +95,14 @@ fn main() {
 
     let versions = versions_from_routes(routes);
 
-    CsharpSdk.generate_sdk(versions, "./csharp");
+    let csharp_output = CsharpSdk.generate_sdk(versions);
+
+    use std::fs::File;
+    use std::io::prelude::*;
+
+    let mut csharp_file = File::create("csharp.cs")?;
+
+    csharp_file.write_all(&csharp_output.as_bytes())?;
+
+    Ok(())
 }

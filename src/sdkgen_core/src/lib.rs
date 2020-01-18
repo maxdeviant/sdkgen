@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-
 pub trait GenerateSdk {
-    fn generate_sdk<O: Into<PathBuf>>(&self, versions: Vec<SdkVersion>, output_directory: O);
+    fn generate_sdk(&self, versions: Vec<SdkVersion>) -> String;
 }
 
 #[derive(Debug, Clone)]
