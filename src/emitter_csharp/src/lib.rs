@@ -1,3 +1,5 @@
+use std::convert::identity;
+
 use heck::CamelCase;
 use sdkgen_core::{GenerateSdk, Primitive, Route, SdkResource, SdkVersion, Type};
 
@@ -45,8 +47,8 @@ fn emit_sdk_resource(version: String, resource: SdkResource) -> String {
         .routes
         .iter()
         .flat_map(|route| vec![route.clone().payload_type.map(|ty| vec![ty])])
-        .filter_map(|x| x)
-        .flat_map(|x| x)
+        .filter_map(identity)
+        .flat_map(identity)
         .collect();
 
     let contents = resource
