@@ -1,7 +1,9 @@
 use std::convert::identity;
 
 use heck::CamelCase;
-use sdkgen_core::{GenerateSdk, Primitive, Route, SdkResource, SdkVersion, Type};
+use sdkgen_core::{
+    GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, UrlSegment,
+};
 
 pub struct CsharpSdk;
 
@@ -76,16 +78,42 @@ namespace Sdk.V{version}
 fn emit_route(route: Route) -> String {
     let return_type = route
         .return_type
-        .unwrap_or(Type::Primitive(Primitive::String));
+        .as_ref()
+        .unwrap_or(&Type::Primitive(Primitive::String));
+
+    let url = route
+        .url_segments()
+        .into_iter()
+        .map(|segment| match segment {
+            UrlSegment::Parameter(param) => format!("{{{}}}", param),
+            UrlSegment::Literal(value) => value,
+        })
+        .collect::<Vec<String>>()
+        .join("/");
 
     format!(
         r#"
+/// <summary>
+/// {summary}
+/// </summary>
 public static async Task<{return_type}> {function_name}()
 {{
-
+    var request = new HttpRequestMessage
+    {{
+        Method = HttpMethod.{http_method},
+        RequestUri = new Uri(apiUrl, $"{url}")
+    }};
 }}
     "#,
-        return_type = emit_type_name(return_type),
-        function_name = route.name
+        function_name = route.name,
+        http_method = match route.method {
+            HttpMethod::Get => "Get",
+            HttpMethod::Post => "Post",
+            HttpMethod::Put => "Put",
+            HttpMethod::Delete => "Delete",
+        },
+        url = url,
+        return_type = emit_type_name(return_type.to_owned()),
+        summary = ""
     )
 }

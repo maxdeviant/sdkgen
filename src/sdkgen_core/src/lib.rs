@@ -63,6 +63,27 @@ pub struct Route {
     pub return_type: Option<Type>,
 }
 
+#[derive(Debug)]
+pub enum UrlSegment {
+    Literal(String),
+    Parameter(String),
+}
+
+impl Route {
+    pub fn url_segments(&self) -> Vec<UrlSegment> {
+        self.url
+            .split("/")
+            .map(|segment| {
+                if segment.starts_with(":") {
+                    UrlSegment::Parameter(segment[1..].into())
+                } else {
+                    UrlSegment::Literal(segment.into())
+                }
+            })
+            .collect()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct UrlParameter {
     pub name: String,
