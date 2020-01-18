@@ -4,6 +4,6 @@ members = [
     "src/sdkgen_core",
     "src/apidoc",
 
-    # Generators
-    "src/sdkgen_dotnet"
+    # Emitters
+    "src/emitter_csharp"
 ]
