@@ -30,11 +30,7 @@ fn convert_route(route: apidoc::Route) -> Route {
     let url_parameters = route
         .parameter
         .map(|section| section.fields)
-        .and_then(|fields| {
-            fields
-                .get("Parameter".into())
-                .map(|parameters| parameters.clone())
-        })
+        .and_then(|fields| fields.get("Parameter").cloned())
         .map(|parameters| {
             parameters
                 .into_iter()
@@ -45,7 +41,7 @@ fn convert_route(route: apidoc::Route) -> Route {
                 })
                 .collect::<Vec<_>>()
         })
-        .unwrap_or(Vec::new());
+        .unwrap_or_default();
 
     Route {
         name: route.name,
@@ -63,9 +59,11 @@ fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
     let mut versions = HashMap::new();
 
     for route in routes.iter() {
-        let version = versions.entry(&route.version).or_insert(HashMap::new());
+        let version = versions.entry(&route.version).or_insert_with(HashMap::new);
 
-        let resource_routes = version.entry(&route.group).or_insert(Vec::<Route>::new());
+        let resource_routes = version
+            .entry(&route.group)
+            .or_insert_with(Vec::<Route>::new);
 
         resource_routes.push(route.clone());
     }

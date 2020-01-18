@@ -72,9 +72,9 @@ pub enum UrlSegment {
 impl Route {
     pub fn url_segments(&self) -> Vec<UrlSegment> {
         self.url
-            .split("/")
+            .split('/')
             .map(|segment| {
-                if segment.starts_with(":") {
+                if segment.starts_with(':') {
                     UrlSegment::Parameter(segment[1..].into())
                 } else {
                     UrlSegment::Literal(segment.into())
