@@ -62,7 +62,7 @@ pub struct ParameterSection {
     pub fields: HashMap<String, Vec<Parameter>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Parameter {
     pub group: String,
     #[serde(rename = "type")]
