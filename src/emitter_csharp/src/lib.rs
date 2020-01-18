@@ -98,6 +98,8 @@ fn emit_route(route: Route) -> String {
         .collect::<Vec<String>>()
         .join("/");
 
+    let request_content = route.payload_type.map(|_| format!(r#"request.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");"#));
+
     format!(
         r#"
 /// <summary>
@@ -111,6 +113,7 @@ public static async Task<{return_type}> {function_name}({parameter_list})
         RequestUri = new Uri(apiUrl, $"{url}")
     }};
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    {request_content}
 
     var response = await httpClient.SendAsync(request).ConfigureAwait(false);
     var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -127,6 +130,7 @@ public static async Task<{return_type}> {function_name}({parameter_list})
             HttpMethod::Delete => "Delete",
         },
         url = url,
+        request_content = request_content.unwrap_or_default(),
         return_type = emit_type_name(return_type.to_owned()),
         summary = ""
     )
