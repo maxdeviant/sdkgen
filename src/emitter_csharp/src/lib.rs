@@ -81,6 +81,13 @@ fn emit_route(route: Route) -> String {
         .as_ref()
         .unwrap_or(&Type::Primitive(Primitive::String));
 
+    let parameter_list = route
+        .all_parameters()
+        .iter()
+        .map(|(name, ty)| format!("{} {}", emit_type_name(ty.clone()), name))
+        .collect::<Vec<String>>()
+        .join(", ");
+
     let url = route
         .url_segments()
         .into_iter()
@@ -96,16 +103,23 @@ fn emit_route(route: Route) -> String {
 /// <summary>
 /// {summary}
 /// </summary>
-public static async Task<{return_type}> {function_name}()
+public static async Task<{return_type}> {function_name}({parameter_list})
 {{
     var request = new HttpRequestMessage
     {{
         Method = HttpMethod.{http_method},
         RequestUri = new Uri(apiUrl, $"{url}")
     }};
+    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+    var response = await httpClient.SendAsync(request);
+    var responseBody = await response.Content.ReadAsStringAsync();
+
+    return JsonConvert.DeserializeObject<{return_type}>(responseBody);
 }}
     "#,
         function_name = route.name,
+        parameter_list = parameter_list,
         http_method = match route.method {
             HttpMethod::Get => "Get",
             HttpMethod::Post => "Post",

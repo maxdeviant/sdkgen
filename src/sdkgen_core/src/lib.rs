@@ -82,6 +82,25 @@ impl Route {
             })
             .collect()
     }
+
+    pub fn all_parameters(&self) -> Vec<(String, Type)> {
+        let mut all_parameters: Vec<(String, Type)> = self
+            .url_parameters
+            .iter()
+            .map(|parameter| {
+                (
+                    parameter.name.clone(),
+                    Type::Primitive(parameter.ty.clone()),
+                )
+            })
+            .collect();
+
+        if let Some((name, ty)) = self.payload_type.as_ref().map(|ty| ("payload".into(), ty)) {
+            all_parameters.push((name, ty.to_owned()));
+        }
+
+        all_parameters
+    }
 }
 
 #[derive(Debug, Clone)]
