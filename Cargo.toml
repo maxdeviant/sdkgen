@@ -2,6 +2,7 @@
 members = [
     "src/sdkgen",
     "src/sdkgen_core",
+    "src/apidoc",
 
     # Generators
     "src/sdkgen_dotnet"
