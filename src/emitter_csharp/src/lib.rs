@@ -121,7 +121,7 @@ public static async Task<{return_type}> {function_name}({parameter_list})
     return JsonConvert.DeserializeObject<{return_type}>(responseBody);
 }}
     "#,
-        function_name = route.name,
+        function_name = route.name.to_camel_case(),
         parameter_list = parameter_list,
         http_method = match route.method {
             HttpMethod::Get => "Get",
