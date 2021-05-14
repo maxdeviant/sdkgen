@@ -1,5 +1,5 @@
 [package]
-name = "sdkgen"
+name = "sdkgen_adapter_openapi"
 version = "0.1.0"
 authors = ["Marshall Bowers <elliott.codes@gmail.com>"]
 edition = "2018"
@@ -7,9 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-apidoc = { path = "../apidoc" }
-emitter_csharp = { path = "../emitter_csharp" }
-sdkgen_adapter_openapi = { path = "../sdkgen_adapter_openapi" }
+openapiv3 = "0.5.0"
 sdkgen_core = { path = "../sdkgen_core" }
 serde = "1.0"
-serde_json = "1.0"
+serde_yaml = "0.8"

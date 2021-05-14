@@ -4,6 +4,9 @@ members = [
     "src/sdkgen_core",
     "src/apidoc",
 
+    # Adapters
+    "src/sdkgen_adapter_openapi",
+
     # Emitters
     "src/emitter_csharp"
 ]

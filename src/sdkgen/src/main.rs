@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use apidoc;
 use emitter_csharp::CsharpSdk;
+use sdkgen_adapter_openapi;
 use sdkgen_core::{
     GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, UrlParameter,
 };
@@ -84,12 +85,10 @@ fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
 }
 
 fn main() -> std::io::Result<()> {
-    let json = include_str!("../../../../../serve_apidoc/api_data.json");
+    let petstore_yaml = include_str!("../../../fixtures/petstore.yaml");
 
-    let routes: Vec<apidoc::Route> =
-        serde_json::from_str(json).expect("Failed to deserialize API data");
-
-    let routes: Vec<Route> = routes.into_iter().map(convert_route).collect();
+    let routes =
+        sdkgen_adapter_openapi::from_yaml(petstore_yaml).expect("Failed to deserialize API data");
 
     let versions = versions_from_routes(routes);
 
