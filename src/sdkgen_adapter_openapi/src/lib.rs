@@ -1,5 +1,5 @@
-use openapiv3::{OpenAPI as OpenApi, Operation, PathItem, ReferenceOr};
-use sdkgen_core::{HttpMethod, Route};
+use openapiv3::{OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr};
+use sdkgen_core::{HttpMethod, Primitive, Route, UrlParameter};
 use serde_yaml;
 
 pub fn from_yaml(openapi_yaml: &str) -> serde_yaml::Result<Vec<Route>> {
@@ -29,6 +29,18 @@ fn from_openapi(openapi: OpenApi) -> Vec<Route> {
 }
 
 fn path_to_routes(path: String, path_item: PathItem) -> Vec<Route> {
+    let url_parameters: Vec<UrlParameter> = path_item
+        .parameters
+        .into_iter()
+        .filter_map(|parameter| match parameter {
+            ReferenceOr::Reference { .. } => None,
+            ReferenceOr::Item(Parameter::Path { parameter_data, .. }) => {
+                Some(parameter_to_url_parameter(parameter_data))
+            }
+            ReferenceOr::Item(_) => None,
+        })
+        .collect();
+
     let get_route = path_item
         .get
         .map(|operation| operation_to_route(path.clone(), HttpMethod::Get, operation));
@@ -49,10 +61,23 @@ fn path_to_routes(path: String, path_item: PathItem) -> Vec<Route> {
         .delete
         .map(|operation| operation_to_route(path.clone(), HttpMethod::Delete, operation));
 
-    vec![get_route, post_route, put_route, patch_route, delete_route]
+    let mut routes: Vec<Route> = vec![get_route, post_route, put_route, patch_route, delete_route]
         .into_iter()
         .filter_map(|x| x)
-        .collect()
+        .collect();
+
+    for route in routes.iter_mut() {
+        route.url_parameters = url_parameters.clone();
+    }
+
+    routes
+}
+
+fn parameter_to_url_parameter(parameter: ParameterData) -> UrlParameter {
+    UrlParameter {
+        name: parameter.name,
+        ty: Primitive::String,
+    }
 }
 
 fn operation_to_route(path: String, method: HttpMethod, operation: Operation) -> Route {
