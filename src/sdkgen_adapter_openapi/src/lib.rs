@@ -41,7 +41,15 @@ fn path_to_routes(path: String, path_item: PathItem) -> Vec<Route> {
         .put
         .map(|operation| operation_to_route(path.clone(), HttpMethod::Put, operation));
 
-    vec![get_route, post_route, put_route]
+    let patch_route = path_item
+        .patch
+        .map(|operation| operation_to_route(path.clone(), HttpMethod::Patch, operation));
+
+    let delete_route = path_item
+        .delete
+        .map(|operation| operation_to_route(path.clone(), HttpMethod::Delete, operation));
+
+    vec![get_route, post_route, put_route, patch_route, delete_route]
         .into_iter()
         .filter_map(|x| x)
         .collect()

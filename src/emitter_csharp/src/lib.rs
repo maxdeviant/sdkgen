@@ -127,6 +127,7 @@ public static async Task<{return_type}> {function_name}({parameter_list})
             HttpMethod::Get => "Get",
             HttpMethod::Post => "Post",
             HttpMethod::Put => "Put",
+            HttpMethod::Patch => "Patch",
             HttpMethod::Delete => "Delete",
         },
         url = url,
