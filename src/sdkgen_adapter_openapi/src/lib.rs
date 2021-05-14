@@ -29,18 +29,6 @@ fn from_openapi(openapi: OpenApi) -> Vec<Route> {
 }
 
 fn path_to_routes(path: String, path_item: PathItem) -> Vec<Route> {
-    let url_parameters: Vec<UrlParameter> = path_item
-        .parameters
-        .into_iter()
-        .filter_map(|parameter| match parameter {
-            ReferenceOr::Reference { .. } => None,
-            ReferenceOr::Item(Parameter::Path { parameter_data, .. }) => {
-                Some(parameter_to_url_parameter(parameter_data))
-            }
-            ReferenceOr::Item(_) => None,
-        })
-        .collect();
-
     let get_route = path_item
         .get
         .map(|operation| operation_to_route(path.clone(), HttpMethod::Get, operation));
@@ -61,16 +49,10 @@ fn path_to_routes(path: String, path_item: PathItem) -> Vec<Route> {
         .delete
         .map(|operation| operation_to_route(path.clone(), HttpMethod::Delete, operation));
 
-    let mut routes: Vec<Route> = vec![get_route, post_route, put_route, patch_route, delete_route]
+    vec![get_route, post_route, put_route, patch_route, delete_route]
         .into_iter()
         .filter_map(|x| x)
-        .collect();
-
-    for route in routes.iter_mut() {
-        route.url_parameters = url_parameters.clone();
-    }
-
-    routes
+        .collect()
 }
 
 fn parameter_to_url_parameter(parameter: ParameterData) -> UrlParameter {
@@ -81,6 +63,18 @@ fn parameter_to_url_parameter(parameter: ParameterData) -> UrlParameter {
 }
 
 fn operation_to_route(path: String, method: HttpMethod, operation: Operation) -> Route {
+    let url_parameters: Vec<UrlParameter> = operation
+        .parameters
+        .into_iter()
+        .filter_map(|parameter| match parameter {
+            ReferenceOr::Reference { .. } => None,
+            ReferenceOr::Item(Parameter::Path { parameter_data, .. }) => {
+                Some(parameter_to_url_parameter(parameter_data))
+            }
+            ReferenceOr::Item(_) => None,
+        })
+        .collect();
+
     Route {
         name: operation
             .operation_id
@@ -89,7 +83,7 @@ fn operation_to_route(path: String, method: HttpMethod, operation: Operation) ->
         method,
         group: path,
         version: "".into(),
-        url_parameters: vec![],
+        url_parameters,
         payload_type: None,
         return_type: None,
     }
