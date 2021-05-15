@@ -1,8 +1,8 @@
 use std::convert::TryFrom;
 
 use openapiv3::{
-    OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr, Response,
-    Schema,
+    ObjectType, OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr,
+    Response, Schema, SchemaKind, StatusCode, Type as OpenApiType,
 };
 use sdkgen_core::{HttpMethod, Primitive, Route, Type, UrlParameter};
 use serde_yaml;
@@ -75,15 +75,23 @@ fn operation_to_route(
 ) -> Route {
     let url_parameters: Vec<UrlParameter> = operation
         .parameters
-        .into_iter()
+        .iter()
         .filter_map(|parameter| match parameter {
             ReferenceOr::Reference { .. } => None,
             ReferenceOr::Item(Parameter::Path { parameter_data, .. }) => {
-                Some(parameter_to_url_parameter(parameter_data))
+                Some(parameter_to_url_parameter(parameter_data.clone()))
             }
             ReferenceOr::Item(_) => None,
         })
         .collect();
+
+    let default_or_ok_response = operation.responses.default.clone().or_else(|| {
+        operation
+            .responses
+            .responses
+            .get(&StatusCode::Code(200))
+            .cloned()
+    });
 
     Route {
         name: operation
@@ -95,14 +103,12 @@ fn operation_to_route(
         version: "".into(),
         url_parameters,
         payload_type: None,
-        return_type: operation.responses.default.and_then(
-            |default_response| match default_response {
-                ReferenceOr::Item(default_response) => {
-                    response_to_return_type(&openapi, default_response).ok()
-                }
-                ReferenceOr::Reference { .. } => None,
-            },
-        ),
+        return_type: default_or_ok_response.and_then(|default_response| match default_response {
+            ReferenceOr::Item(default_response) => {
+                response_to_return_type(&openapi, default_response).ok()
+            }
+            ReferenceOr::Reference { .. } => None,
+        }),
     }
 }
 
@@ -114,23 +120,58 @@ fn response_to_return_type(openapi: &OpenApi, response: Response) -> Result<Type
         .get(media_type)
         .ok_or_else(|| format!("No response found for {}", media_type))?;
 
-    let schema = media_type.schema.clone().and_then(|schema| match schema {
-        ReferenceOr::Item(schema) => Some(NamedOrAnonymous::Anonymous(schema)),
-        ReferenceOr::Reference { reference } => SchemaReference::try_from(reference)
-            .ok()
-            .and_then(|schema| schema.resolve(&openapi))
-            .map(|named_schema| NamedOrAnonymous::Named(named_schema.name, named_schema.schema)),
-    });
+    let schema = media_type
+        .schema
+        .clone()
+        .and_then(|schema| match schema {
+            ReferenceOr::Item(schema) => Some(NamedOrAnonymous::Anonymous(schema)),
+            ReferenceOr::Reference { reference } => SchemaReference::try_from(reference)
+                .ok()
+                .and_then(|schema| schema.resolve(&openapi))
+                .map(|named_schema| {
+                    NamedOrAnonymous::Named(named_schema.name, named_schema.schema)
+                }),
+        })
+        .ok_or_else(|| format!("No schema."))?;
 
-    let schema = dbg!(schema);
+    let return_type = schema_to_type(schema.into_value());
 
-    Ok(Type::Primitive(Primitive::String))
+    Ok(return_type)
+}
+
+fn schema_to_type(schema: Schema) -> Type {
+    match schema.schema_kind {
+        SchemaKind::Type(ty) => openapi_type_to_type(ty),
+        _ => unimplemented!(),
+    }
+}
+
+fn openapi_type_to_type(ty: OpenApiType) -> Type {
+    match ty {
+        OpenApiType::String(_) => Type::Primitive(Primitive::String),
+        OpenApiType::Number(_) => Type::Primitive(Primitive::Float),
+        OpenApiType::Integer(_) => Type::Primitive(Primitive::Integer),
+        OpenApiType::Boolean {} => Type::Primitive(Primitive::Boolean),
+        OpenApiType::Object(ObjectType { properties, .. }) => Type::Map {
+            key: Box::new(Type::Primitive(Primitive::String)),
+            value: Box::new(Type::Primitive(Primitive::String)),
+        },
+        OpenApiType::Array(_) => Type::Array(Box::new(Type::Primitive(Primitive::String))),
+    }
 }
 
 #[derive(Debug)]
 enum NamedOrAnonymous<T> {
     Named(String, T),
     Anonymous(T),
+}
+
+impl<T> NamedOrAnonymous<T> {
+    fn into_value(self) -> T {
+        match self {
+            NamedOrAnonymous::Named(_, value) | NamedOrAnonymous::Anonymous(value) => value,
+        }
+    }
 }
 
 #[derive(Debug)]
