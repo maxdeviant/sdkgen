@@ -97,7 +97,7 @@ fn operation_to_route(
         name: operation
             .operation_id
             .expect(&format!("No operation ID for {}", &path)),
-        url: path.clone(),
+        url: path.clone().replace("{", ":").replace("}", ""),
         method,
         group: path,
         version: "".into(),
