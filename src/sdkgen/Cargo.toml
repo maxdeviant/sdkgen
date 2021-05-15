@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 emitter_csharp = { path = "../emitter_csharp" }
 emitter_typescript = { path = "../emitter_typescript" }
+indexmap = "1.6"
 sdkgen_adapter_openapi = { path = "../sdkgen_adapter_openapi" }
 sdkgen_core = { path = "../sdkgen_core" }
 serde = "1.0"

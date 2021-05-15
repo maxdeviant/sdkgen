@@ -1,14 +1,13 @@
-use std::collections::HashMap;
-
 use emitter_csharp::CsharpSdk;
 use emitter_typescript::TypeScriptSdk;
+use indexmap::IndexMap;
 use sdkgen_core::{GenerateSdk, Route, SdkResource, SdkVersion, TypeDeclarations};
 
 fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
-    let mut versions = HashMap::new();
+    let mut versions = IndexMap::new();
 
     for route in routes.iter() {
-        let version = versions.entry(&route.version).or_insert_with(HashMap::new);
+        let version = versions.entry(&route.version).or_insert_with(IndexMap::new);
 
         let resource_routes = version
             .entry(&route.group)

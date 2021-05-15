@@ -108,6 +108,7 @@ version = "0.1.0"
 dependencies = [
  "emitter_csharp",
  "emitter_typescript",
+ "indexmap",
  "sdkgen_adapter_openapi",
  "sdkgen_core",
  "serde",
@@ -127,6 +128,9 @@ dependencies = [
 [[package]]
 name = "sdkgen_core"
 version = "0.1.0"
+dependencies = [
+ "indexmap",
+]
 
 [[package]]
 name = "serde"

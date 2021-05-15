@@ -1,5 +1,5 @@
-use std::collections::hash_map::IntoIter;
-use std::collections::HashMap;
+use indexmap::map::IntoIter;
+use indexmap::IndexMap;
 
 pub trait CasingRules<T: ToOwned> {
     fn to_type_name_case(&self, identifier: T) -> T::Owned;
@@ -53,13 +53,13 @@ impl Type {
 
 #[derive(Debug, Clone)]
 pub struct TypeDeclarations {
-    declarations: HashMap<String, Type>,
+    declarations: IndexMap<String, Type>,
 }
 
 impl TypeDeclarations {
     pub fn new() -> Self {
         Self {
-            declarations: HashMap::new(),
+            declarations: IndexMap::new(),
         }
     }
 
