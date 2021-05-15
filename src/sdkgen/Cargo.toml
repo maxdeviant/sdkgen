@@ -14,3 +14,4 @@ sdkgen_adapter_openapi = { path = "../sdkgen_adapter_openapi" }
 sdkgen_core = { path = "../sdkgen_core" }
 serde = "1.0"
 serde_json = "1.0"
+structopt = "0.3"

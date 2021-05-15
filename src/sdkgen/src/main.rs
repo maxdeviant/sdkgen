@@ -1,7 +1,10 @@
+use std::path::PathBuf;
+
 use indexmap::IndexMap;
 use sdkgen_core::{GenerateSdk, Route, SdkResource, SdkVersion, TypeDeclarations};
 use sdkgen_emitter_csharp::CsharpSdk;
 use sdkgen_emitter_typescript::TypeScriptSdk;
+use structopt::StructOpt;
 
 fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
     let mut versions = IndexMap::new();
@@ -31,11 +34,33 @@ fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
         .collect()
 }
 
-fn main() -> std::io::Result<()> {
-    let petstore_yaml = include_str!("../../../fixtures/petstore.yaml");
+#[derive(Debug, StructOpt)]
+struct Args {
+    #[structopt(name = "API_DEFINITION")]
+    api_definition: PathBuf,
+}
 
-    let routes =
-        sdkgen_adapter_openapi::from_yaml(petstore_yaml).expect("Failed to deserialize API data");
+fn main() -> std::io::Result<()> {
+    let args = Args::from_args();
+
+    use std::ffi::OsStr;
+    use std::fs::File;
+    use std::io::prelude::*;
+    use std::io::BufReader;
+
+    let api_definition = File::open(&args.api_definition)?;
+    let mut buf_reader = BufReader::new(api_definition);
+    let mut api_definition = String::new();
+    buf_reader.read_to_string(&mut api_definition)?;
+
+    let routes = match args.api_definition.extension().and_then(OsStr::to_str) {
+        Some("json") => sdkgen_adapter_openapi::from_json(&api_definition)
+            .expect("Failed to deserialize API data"),
+        Some("yaml") => sdkgen_adapter_openapi::from_yaml(&api_definition)
+            .expect("Failed to deserialize API data"),
+        Some(extension) => panic!("Invalid file extension: '{}'", extension),
+        None => panic!("Could not determine extension"),
+    };
 
     let mut type_decls = TypeDeclarations::new();
 
@@ -53,9 +78,6 @@ fn main() -> std::io::Result<()> {
 
     let csharp_output = CsharpSdk.generate_sdk(type_decls.clone(), versions.clone());
     let typescript_output = TypeScriptSdk.generate_sdk(type_decls, versions);
-
-    use std::fs::File;
-    use std::io::prelude::*;
 
     let mut csharp_file = File::create("generated/csharp.cs")?;
     csharp_file.write_all(&csharp_output.as_bytes())?;
