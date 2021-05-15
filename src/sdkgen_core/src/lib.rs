@@ -53,11 +53,19 @@ impl Type {
     pub fn referenced_types(&self) -> Vec<Type> {
         match self {
             Type::Primitive(_) | Type::Union { .. } => vec![],
-            Type::Array(ty) => vec![*ty.clone()],
-            Type::Map { key, value } => vec![*key.clone(), *value.clone()],
-            Type::Record { members, .. } => {
-                members.iter().map(|member| member.ty.clone()).collect()
-            }
+            Type::Array(ty) => vec![vec![*ty.clone()], ty.referenced_types()].concat(),
+            Type::Map { key, value } => vec![
+                vec![*key.clone(), *value.clone()],
+                key.referenced_types(),
+                value.referenced_types(),
+            ]
+            .concat(),
+            Type::Record { members, .. } => members
+                .iter()
+                .flat_map(|member| {
+                    vec![vec![member.ty.clone()], member.ty.referenced_types()].concat()
+                })
+                .collect(),
         }
     }
 }
