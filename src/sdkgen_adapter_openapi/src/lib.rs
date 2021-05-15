@@ -7,7 +7,6 @@ use openapiv3::{
     ReferenceOr, Response, Schema, SchemaKind, StatusCode, Type as OpenApiType,
 };
 use sdkgen_core::{HttpMethod, Member, NonEmptyString, Primitive, Route, Type, UrlParameter};
-use serde_yaml;
 
 use crate::schema::resolve_schema;
 
@@ -110,7 +109,7 @@ fn operation_to_route(
             .operation_id
             .expect(&format!("No operation ID for {}", &path)),
         description,
-        url: path.clone().replace("{", ":").replace("}", ""),
+        url: path.replace("{", ":").replace("}", ""),
         method,
         group: operation.tags.first().unwrap_or(&path).to_string(),
         version: "".into(),
@@ -157,9 +156,9 @@ fn response_to_return_type(openapi: &OpenApi, response: Response) -> Result<Type
         .schema
         .clone()
         .and_then(|schema| resolve_schema(&openapi, schema))
-        .ok_or_else(|| format!("No schema."))?;
+        .ok_or_else(|| "No schema.".to_string())?;
 
-    let return_type = schema_to_type(&openapi, schema.clone());
+    let return_type = schema_to_type(&openapi, schema);
 
     Ok(return_type)
 }
@@ -206,7 +205,6 @@ fn openapi_type_to_type(openapi: &OpenApi, ty: OpenApiType) -> Type {
                         name,
                         description: None,
                         ty: schema
-                            .clone()
                             .map(|schema| schema_to_type(&openapi, schema))
                             .unwrap_or(Type::Primitive(Primitive::String)),
                         is_optional,

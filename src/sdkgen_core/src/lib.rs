@@ -159,8 +159,8 @@ impl Route {
         self.url
             .split('/')
             .map(|segment| {
-                if segment.starts_with(':') {
-                    UrlSegment::Parameter(segment[1..].into())
+                if let Some(parameter) = segment.strip_prefix(':') {
+                    UrlSegment::Parameter(parameter.into())
                 } else {
                     UrlSegment::Literal(segment.into())
                 }
