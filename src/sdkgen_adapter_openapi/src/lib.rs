@@ -1,8 +1,8 @@
 mod schema;
 
 use openapiv3::{
-    ObjectType, OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr,
-    Response, Schema, SchemaKind, StatusCode, Type as OpenApiType,
+    ArrayType, ObjectType, OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem,
+    ReferenceOr, Response, Schema, SchemaKind, StatusCode, Type as OpenApiType,
 };
 use sdkgen_core::{HttpMethod, Member, Primitive, Route, Type, UrlParameter};
 use serde_yaml;
@@ -179,7 +179,14 @@ fn openapi_type_to_type(openapi: &OpenApi, ty: OpenApiType) -> Type {
                 })
                 .collect(),
         },
-        OpenApiType::Array(_) => Type::Array(Box::new(Type::Primitive(Primitive::String))),
+        OpenApiType::Array(ArrayType { items, .. }) => {
+            let item_type = match resolve_schema(&openapi, items.unbox()) {
+                Some(schema) => schema_to_type(&openapi, schema),
+                None => Type::Primitive(Primitive::String),
+            };
+
+            Type::Array(Box::new(item_type))
+        }
     }
 }
 
