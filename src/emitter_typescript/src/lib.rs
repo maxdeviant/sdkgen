@@ -122,6 +122,9 @@ fn emit_route(route: Route) -> String {
 
     format!(
         r#"
+/**
+ * {description}
+ */
 export async function {function_name}({parameter_list}): Promise<{return_type}> {{
     const response = await axios({{
         method: '{http_method}',
@@ -133,6 +136,7 @@ export async function {function_name}({parameter_list}): Promise<{return_type}> 
 }}
     "#,
         function_name = TypeScriptCasingRules.to_function_name_case(route.name),
+        description = route.description.map(String::from).unwrap_or_default(),
         parameter_list = parameter_list,
         http_method = match route.method {
             HttpMethod::Get => "get",

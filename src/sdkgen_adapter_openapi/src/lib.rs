@@ -1,10 +1,12 @@
 mod schema;
 
+use std::convert::TryFrom;
+
 use openapiv3::{
     ArrayType, ObjectType, OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem,
     ReferenceOr, Response, Schema, SchemaKind, StatusCode, Type as OpenApiType,
 };
-use sdkgen_core::{HttpMethod, Member, Primitive, Route, Type, UrlParameter};
+use sdkgen_core::{HttpMethod, Member, NonEmptyString, Primitive, Route, Type, UrlParameter};
 use serde_yaml;
 
 use crate::schema::resolve_schema;
@@ -95,10 +97,13 @@ fn operation_to_route(
             .cloned()
     });
 
+    let description = build_description(&operation);
+
     Route {
         name: operation
             .operation_id
             .expect(&format!("No operation ID for {}", &path)),
+        description,
         url: path.clone().replace("{", ":").replace("}", ""),
         method,
         group: path,
@@ -111,6 +116,26 @@ fn operation_to_route(
             }
             ReferenceOr::Reference { .. } => None,
         }),
+    }
+}
+
+fn build_description(operation: &Operation) -> Option<NonEmptyString> {
+    let summary = operation
+        .summary
+        .clone()
+        .and_then(|summary| NonEmptyString::try_from(summary).ok());
+    let description = operation
+        .description
+        .clone()
+        .and_then(|description| NonEmptyString::try_from(description).ok());
+
+    match (summary, description) {
+        (Some(operation), Some(description)) => {
+            NonEmptyString::try_from(format!("{}. {}", operation, description)).ok()
+        }
+        (Some(operation), None) => Some(operation),
+        (None, Some(description)) => Some(description),
+        (None, None) => None,
     }
 }
 

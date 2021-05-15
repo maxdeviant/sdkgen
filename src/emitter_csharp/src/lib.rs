@@ -168,6 +168,6 @@ public static async Task<{return_type}> {function_name}({parameter_list})
         url = url,
         request_content = request_content.unwrap_or_default(),
         return_type = emit_type_name(return_type.to_owned()),
-        summary = ""
+        summary = route.description.map(String::from).unwrap_or_default()
     )
 }

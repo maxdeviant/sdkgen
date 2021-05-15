@@ -1,3 +1,7 @@
+mod non_empty_string;
+
+pub use non_empty_string::*;
+
 use indexmap::map::IntoIter;
 use indexmap::IndexMap;
 
@@ -134,6 +138,7 @@ pub enum HttpMethod {
 #[derive(Debug, Clone)]
 pub struct Route {
     pub name: String,
+    pub description: Option<NonEmptyString>,
     pub method: HttpMethod,
     pub url: String,
     pub group: String,
