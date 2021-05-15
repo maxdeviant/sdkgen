@@ -1,5 +1,10 @@
-use openapiv3::{OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr};
-use sdkgen_core::{HttpMethod, Primitive, Route, UrlParameter};
+use std::convert::TryFrom;
+
+use openapiv3::{
+    OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr, Response,
+    Schema,
+};
+use sdkgen_core::{HttpMethod, Primitive, Route, Type, UrlParameter};
 use serde_yaml;
 
 pub fn from_yaml(openapi_yaml: &str) -> serde_yaml::Result<Vec<Route>> {
@@ -11,14 +16,14 @@ pub fn from_yaml(openapi_yaml: &str) -> serde_yaml::Result<Vec<Route>> {
 fn from_openapi(openapi: OpenApi) -> Vec<Route> {
     let mut routes = Vec::new();
 
-    for (path, reference_or_path_item) in openapi.paths.into_iter() {
+    for (path, reference_or_path_item) in openapi.paths.iter() {
         match reference_or_path_item {
             ReferenceOr::Reference { .. } => {
                 println!("Unhandled reference at path: '{}'", &path);
                 continue;
             }
             ReferenceOr::Item(path_item) => {
-                let routes_for_path = path_to_routes(path, path_item);
+                let routes_for_path = path_to_routes(&openapi, path.clone(), path_item.clone());
 
                 routes.extend(routes_for_path);
             }
@@ -28,26 +33,26 @@ fn from_openapi(openapi: OpenApi) -> Vec<Route> {
     routes
 }
 
-fn path_to_routes(path: String, path_item: PathItem) -> Vec<Route> {
+fn path_to_routes(openapi: &OpenApi, path: String, path_item: PathItem) -> Vec<Route> {
     let get_route = path_item
         .get
-        .map(|operation| operation_to_route(path.clone(), HttpMethod::Get, operation));
+        .map(|operation| operation_to_route(&openapi, path.clone(), HttpMethod::Get, operation));
 
     let post_route = path_item
         .post
-        .map(|operation| operation_to_route(path.clone(), HttpMethod::Post, operation));
+        .map(|operation| operation_to_route(&openapi, path.clone(), HttpMethod::Post, operation));
 
     let put_route = path_item
         .put
-        .map(|operation| operation_to_route(path.clone(), HttpMethod::Put, operation));
+        .map(|operation| operation_to_route(&openapi, path.clone(), HttpMethod::Put, operation));
 
     let patch_route = path_item
         .patch
-        .map(|operation| operation_to_route(path.clone(), HttpMethod::Patch, operation));
+        .map(|operation| operation_to_route(&openapi, path.clone(), HttpMethod::Patch, operation));
 
     let delete_route = path_item
         .delete
-        .map(|operation| operation_to_route(path.clone(), HttpMethod::Delete, operation));
+        .map(|operation| operation_to_route(&openapi, path.clone(), HttpMethod::Delete, operation));
 
     vec![get_route, post_route, put_route, patch_route, delete_route]
         .into_iter()
@@ -62,7 +67,12 @@ fn parameter_to_url_parameter(parameter: ParameterData) -> UrlParameter {
     }
 }
 
-fn operation_to_route(path: String, method: HttpMethod, operation: Operation) -> Route {
+fn operation_to_route(
+    openapi: &OpenApi,
+    path: String,
+    method: HttpMethod,
+    operation: Operation,
+) -> Route {
     let url_parameters: Vec<UrlParameter> = operation
         .parameters
         .into_iter()
@@ -85,6 +95,82 @@ fn operation_to_route(path: String, method: HttpMethod, operation: Operation) ->
         version: "".into(),
         url_parameters,
         payload_type: None,
-        return_type: None,
+        return_type: operation.responses.default.and_then(
+            |default_response| match default_response {
+                ReferenceOr::Item(default_response) => {
+                    response_to_return_type(&openapi, default_response).ok()
+                }
+                ReferenceOr::Reference { .. } => None,
+            },
+        ),
+    }
+}
+
+fn response_to_return_type(openapi: &OpenApi, response: Response) -> Result<Type, String> {
+    let media_type = "application/json";
+
+    let media_type = response
+        .content
+        .get(media_type)
+        .ok_or_else(|| format!("No response found for {}", media_type))?;
+
+    let schema = media_type.schema.clone().and_then(|schema| match schema {
+        ReferenceOr::Item(schema) => Some(NamedOrAnonymous::Anonymous(schema)),
+        ReferenceOr::Reference { reference } => SchemaReference::try_from(reference)
+            .ok()
+            .and_then(|schema| schema.resolve(&openapi))
+            .map(|named_schema| NamedOrAnonymous::Named(named_schema.name, named_schema.schema)),
+    });
+
+    let schema = dbg!(schema);
+
+    Ok(Type::Primitive(Primitive::String))
+}
+
+#[derive(Debug)]
+enum NamedOrAnonymous<T> {
+    Named(String, T),
+    Anonymous(T),
+}
+
+#[derive(Debug)]
+struct NamedSchema {
+    name: String,
+    schema: Schema,
+}
+
+#[derive(Debug)]
+struct SchemaReference(String);
+
+impl SchemaReference {
+    fn resolve(&self, openapi: &OpenApi) -> Option<NamedSchema> {
+        let components = openapi.components.as_ref()?;
+        let schema_or_reference = components.schemas.get(&self.0)?;
+
+        match schema_or_reference {
+            ReferenceOr::Item(schema) => Some(NamedSchema {
+                name: self.0.clone(),
+                schema: schema.clone(),
+            }),
+            ReferenceOr::Reference { reference } => SchemaReference::try_from(reference.clone())
+                .ok()
+                .and_then(|schema| schema.resolve(openapi)),
+        }
+    }
+}
+
+impl TryFrom<String> for SchemaReference {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let schema_path = "#/components/schemas/";
+
+        if !value.starts_with(schema_path) {
+            return Err(format!("Not a schema reference: '{}'.", value));
+        }
+
+        let path = value.trim_start_matches(schema_path);
+
+        Ok(Self(path.into()))
     }
 }
