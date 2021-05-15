@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-apidoc = { path = "../apidoc" }
 emitter_csharp = { path = "../emitter_csharp" }
 emitter_typescript = { path = "../emitter_typescript" }
 sdkgen_adapter_openapi = { path = "../sdkgen_adapter_openapi" }
