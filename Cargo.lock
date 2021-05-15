@@ -106,6 +106,7 @@ dependencies = [
  "openapiv3",
  "sdkgen_core",
  "serde",
+ "serde_json",
  "serde_yaml",
 ]
 

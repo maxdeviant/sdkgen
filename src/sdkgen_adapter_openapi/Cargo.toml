@@ -10,4 +10,5 @@ edition = "2018"
 openapiv3 = "0.5.0"
 sdkgen_core = { path = "../sdkgen_core" }
 serde = "1.0"
+serde_json = "1.0"
 serde_yaml = "0.8"

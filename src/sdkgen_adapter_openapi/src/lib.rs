@@ -11,6 +11,12 @@ use serde_yaml;
 
 use crate::schema::resolve_schema;
 
+pub fn from_json(openapi_json: &str) -> serde_json::Result<Vec<Route>> {
+    let openapi: OpenApi = serde_json::from_str(openapi_json)?;
+
+    Ok(from_openapi(openapi))
+}
+
 pub fn from_yaml(openapi_yaml: &str) -> serde_yaml::Result<Vec<Route>> {
     let openapi: OpenApi = serde_yaml::from_str(openapi_yaml)?;
 
