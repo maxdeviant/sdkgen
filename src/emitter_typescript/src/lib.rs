@@ -1,10 +1,13 @@
+mod casing_rules;
+
 use std::convert::identity;
 
-use heck::{CamelCase, MixedCase};
 use sdkgen_core::{
-    GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, TypeDeclarations,
-    UrlSegment,
+    CasingRules, GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type,
+    TypeDeclarations, UrlSegment,
 };
+
+use crate::casing_rules::TypeScriptCasingRules;
 
 pub struct TypeScriptSdk;
 
@@ -43,7 +46,9 @@ fn emit_type_name(ty: Type) -> String {
             emit_type_name(*key),
             emit_type_name(*value)
         ),
-        Type::Union { name, .. } | Type::Record { name, .. } => name.to_camel_case(),
+        Type::Union { name, .. } | Type::Record { name, .. } => {
+            TypeScriptCasingRules.to_type_name_case(name)
+        }
     }
 }
 
@@ -55,12 +60,12 @@ export interface {name} {{
     {members}
 }}
         "#,
-            name = name.to_camel_case(),
+            name = TypeScriptCasingRules.to_type_name_case(name),
             members = members
                 .into_iter()
                 .map(|member| format!(
                     "{}: {}",
-                    member.name.to_mixed_case(),
+                    TypeScriptCasingRules.to_record_member_case(member.name),
                     emit_type_name(member.ty),
                 ))
                 .collect::<Vec<_>>()
@@ -127,7 +132,7 @@ export async function {function_name}({parameter_list}): Promise<{return_type}> 
     return response.data;
 }}
     "#,
-        function_name = route.name.to_mixed_case(),
+        function_name = TypeScriptCasingRules.to_function_name_case(route.name),
         parameter_list = parameter_list,
         http_method = match route.method {
             HttpMethod::Get => "get",

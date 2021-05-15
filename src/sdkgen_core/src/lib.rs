@@ -1,6 +1,12 @@
 use std::collections::hash_map::IntoIter;
 use std::collections::HashMap;
 
+pub trait CasingRules<T: ToOwned> {
+    fn to_type_name_case(&self, identifier: T) -> T::Owned;
+    fn to_record_member_case(&self, identifier: T) -> T::Owned;
+    fn to_function_name_case(&self, identifier: T) -> T::Owned;
+}
+
 pub trait GenerateSdk {
     fn generate_sdk(&self, types: TypeDeclarations, versions: Vec<SdkVersion>) -> String;
 }

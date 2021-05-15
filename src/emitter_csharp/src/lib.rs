@@ -1,10 +1,13 @@
+mod casing_rules;
+
 use std::convert::identity;
 
-use heck::CamelCase;
 use sdkgen_core::{
-    GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, TypeDeclarations,
-    UrlSegment,
+    CasingRules, GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type,
+    TypeDeclarations, UrlSegment,
 };
+
+use crate::casing_rules::CsharpCasingRules;
 
 pub struct CsharpSdk;
 
@@ -45,7 +48,9 @@ fn emit_type_name(ty: Type) -> String {
             emit_type_name(*key),
             emit_type_name(*value)
         ),
-        Type::Union { name, .. } | Type::Record { name, .. } => name.to_camel_case(),
+        Type::Union { name, .. } | Type::Record { name, .. } => {
+            CsharpCasingRules.to_type_name_case(name)
+        }
     }
 }
 
@@ -58,13 +63,13 @@ public class {name}
     {members}
 }}
         "#,
-            name = name.to_camel_case(),
+            name = CsharpCasingRules.to_type_name_case(name),
             members = members
                 .into_iter()
                 .map(|member| format!(
                     "public {} {} {{ get; set; }}",
                     emit_type_name(member.ty),
-                    member.name.to_camel_case(),
+                    CsharpCasingRules.to_record_member_case(member.name)
                 ))
                 .collect::<Vec<_>>()
                 .join("\n")
@@ -151,7 +156,7 @@ public static async Task<{return_type}> {function_name}({parameter_list})
     return JsonConvert.DeserializeObject<{return_type}>(responseBody);
 }}
     "#,
-        function_name = route.name.to_camel_case(),
+        function_name = CsharpCasingRules.to_function_name_case(route.name),
         parameter_list = parameter_list,
         http_method = match route.method {
             HttpMethod::Get => "Get",
