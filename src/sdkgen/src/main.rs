@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use emitter_csharp::CsharpSdk;
 use emitter_typescript::TypeScriptSdk;
-use sdkgen_adapter_openapi;
-use sdkgen_core::{GenerateSdk, Route, SdkResource, SdkVersion};
+use sdkgen_core::{GenerateSdk, Route, SdkResource, SdkVersion, TypeDeclarations};
 
 fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
     let mut versions = HashMap::new();
@@ -39,10 +38,22 @@ fn main() -> std::io::Result<()> {
     let routes =
         sdkgen_adapter_openapi::from_yaml(petstore_yaml).expect("Failed to deserialize API data");
 
+    let mut type_decls = TypeDeclarations::new();
+
+    for route in routes.iter() {
+        if let Some(payload_type) = route.payload_type.as_ref() {
+            type_decls.register(payload_type.to_owned());
+        }
+
+        if let Some(return_type) = route.return_type.as_ref() {
+            type_decls.register(return_type.to_owned());
+        }
+    }
+
     let versions = versions_from_routes(routes);
 
-    let csharp_output = CsharpSdk.generate_sdk(versions.clone());
-    let typescript_output = TypeScriptSdk.generate_sdk(versions);
+    let csharp_output = CsharpSdk.generate_sdk(type_decls.clone(), versions.clone());
+    let typescript_output = TypeScriptSdk.generate_sdk(type_decls, versions);
 
     use std::fs::File;
     use std::io::prelude::*;

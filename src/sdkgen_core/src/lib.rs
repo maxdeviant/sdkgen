@@ -1,5 +1,8 @@
+use std::collections::hash_map::IntoIter;
+use std::collections::HashMap;
+
 pub trait GenerateSdk {
-    fn generate_sdk(&self, versions: Vec<SdkVersion>) -> String;
+    fn generate_sdk(&self, types: TypeDeclarations, versions: Vec<SdkVersion>) -> String;
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +24,13 @@ pub enum Type {
 }
 
 impl Type {
+    pub fn name(&self) -> Option<&str> {
+        match self {
+            Type::Union { name, .. } | Type::Record { name, .. } => Some(name),
+            Type::Primitive(_) | Type::Array(_) | Type::Map { .. } => None,
+        }
+    }
+
     pub fn set_name<N: Into<String>>(mut self, name: N) -> Self {
         let new_name = name;
 
@@ -32,6 +42,35 @@ impl Type {
         };
 
         self
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeDeclarations {
+    declarations: HashMap<String, Type>,
+}
+
+impl TypeDeclarations {
+    pub fn new() -> Self {
+        Self {
+            declarations: HashMap::new(),
+        }
+    }
+
+    /// Registers a type declaration.
+    pub fn register(&mut self, ty: Type) {
+        if let Some(name) = ty.name() {
+            self.declarations.insert(name.to_owned(), ty);
+        }
+    }
+}
+
+impl IntoIterator for TypeDeclarations {
+    type Item = (String, Type);
+    type IntoIter = IntoIter<String, Type>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.declarations.into_iter()
     }
 }
 

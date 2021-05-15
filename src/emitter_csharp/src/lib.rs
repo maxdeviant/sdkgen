@@ -2,14 +2,19 @@ use std::convert::identity;
 
 use heck::CamelCase;
 use sdkgen_core::{
-    GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, UrlSegment,
+    GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, TypeDeclarations,
+    UrlSegment,
 };
 
 pub struct CsharpSdk;
 
 impl GenerateSdk for CsharpSdk {
-    fn generate_sdk(&self, versions: Vec<SdkVersion>) -> String {
+    fn generate_sdk(&self, type_decls: TypeDeclarations, versions: Vec<SdkVersion>) -> String {
         let mut buffer = String::new();
+
+        for (_name, ty) in type_decls.into_iter() {
+            buffer += &emit_type_decl(ty);
+        }
 
         for version in versions {
             for resource in version.resources {
@@ -41,6 +46,31 @@ fn emit_type_name(ty: Type) -> String {
             emit_type_name(*value)
         ),
         Type::Union { name, .. } | Type::Record { name, .. } => name.to_camel_case(),
+    }
+}
+
+fn emit_type_decl(ty: Type) -> String {
+    match ty {
+        Type::Record { name, members } => format!(
+            r#"
+public class {name}
+{{
+    {members}
+}}
+        "#,
+            name = name,
+            members = members
+                .into_iter()
+                .map(|member| format!(
+                    "public {} {} {{ get; set; }}",
+                    emit_type_name(member.ty),
+                    member.name.to_camel_case(),
+                ))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+        Type::Union { .. } => "".into(),
+        Type::Primitive(_) | Type::Array(_) | Type::Map { .. } => "".into(),
     }
 }
 

@@ -4,7 +4,7 @@ use openapiv3::{
     ObjectType, OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr,
     Response, Schema, SchemaKind, StatusCode, Type as OpenApiType,
 };
-use sdkgen_core::{HttpMethod, Primitive, Route, Type, UrlParameter};
+use sdkgen_core::{HttpMethod, Member, Primitive, Route, Type, UrlParameter};
 use serde_yaml;
 
 pub fn from_yaml(openapi_yaml: &str) -> serde_yaml::Result<Vec<Route>> {
@@ -134,33 +134,67 @@ fn response_to_return_type(openapi: &OpenApi, response: Response) -> Result<Type
         })
         .ok_or_else(|| format!("No schema."))?;
 
-    let return_type = schema_to_type(schema.into_value());
+    let mut return_type = schema_to_type(&openapi, schema.clone().into_value());
+    if let NamedOrAnonymous::Named(name, _) = schema {
+        return_type = return_type.set_name(name);
+    }
 
     Ok(return_type)
 }
 
-fn schema_to_type(schema: Schema) -> Type {
+fn schema_to_type(openapi: &OpenApi, schema: Schema) -> Type {
     match schema.schema_kind {
-        SchemaKind::Type(ty) => openapi_type_to_type(ty),
+        SchemaKind::Type(ty) => openapi_type_to_type(&openapi, ty),
         _ => unimplemented!(),
     }
 }
 
-fn openapi_type_to_type(ty: OpenApiType) -> Type {
+fn openapi_type_to_type(openapi: &OpenApi, ty: OpenApiType) -> Type {
     match ty {
         OpenApiType::String(_) => Type::Primitive(Primitive::String),
         OpenApiType::Number(_) => Type::Primitive(Primitive::Float),
         OpenApiType::Integer(_) => Type::Primitive(Primitive::Integer),
         OpenApiType::Boolean {} => Type::Primitive(Primitive::Boolean),
-        OpenApiType::Object(ObjectType { properties, .. }) => Type::Map {
-            key: Box::new(Type::Primitive(Primitive::String)),
-            value: Box::new(Type::Primitive(Primitive::String)),
+        OpenApiType::Object(ObjectType {
+            properties,
+            required,
+            ..
+        }) => Type::Record {
+            name: "".into(),
+            members: properties
+                .into_iter()
+                .map(|(name, schema)| {
+                    let is_optional = !required.contains(&name);
+
+                    let schema = match schema {
+                        ReferenceOr::Item(schema) => Some(schema),
+                        ReferenceOr::Reference { reference } => {
+                            SchemaReference::try_from(reference)
+                                .ok()
+                                .and_then(|schema| {
+                                    schema
+                                        .resolve(&openapi)
+                                        .map(|schema| Box::new(schema.schema))
+                                })
+                        }
+                    };
+
+                    Member {
+                        name,
+                        description: None,
+                        ty: schema
+                            .map(|schema| schema_to_type(&openapi, *schema))
+                            .unwrap_or(Type::Primitive(Primitive::String)),
+                        is_optional,
+                    }
+                })
+                .collect(),
         },
         OpenApiType::Array(_) => Type::Array(Box::new(Type::Primitive(Primitive::String))),
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum NamedOrAnonymous<T> {
     Named(String, T),
     Anonymous(T),
