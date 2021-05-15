@@ -13,22 +13,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
-name = "emitter_csharp"
-version = "0.1.0"
-dependencies = [
- "heck",
- "sdkgen_core",
-]
-
-[[package]]
-name = "emitter_typescript"
-version = "0.1.0"
-dependencies = [
- "heck",
- "sdkgen_core",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -106,11 +90,11 @@ checksum = "bfa8506c1de11c9c4e4c38863ccbe02a305c8188e85a05a784c9e11e1c3910c8"
 name = "sdkgen"
 version = "0.1.0"
 dependencies = [
- "emitter_csharp",
- "emitter_typescript",
  "indexmap",
  "sdkgen_adapter_openapi",
  "sdkgen_core",
+ "sdkgen_emitter_csharp",
+ "sdkgen_emitter_typescript",
  "serde",
  "serde_json",
 ]
@@ -130,6 +114,22 @@ name = "sdkgen_core"
 version = "0.1.0"
 dependencies = [
  "indexmap",
+]
+
+[[package]]
+name = "sdkgen_emitter_csharp"
+version = "0.1.0"
+dependencies = [
+ "heck",
+ "sdkgen_core",
+]
+
+[[package]]
+name = "sdkgen_emitter_typescript"
+version = "0.1.0"
+dependencies = [
+ "heck",
+ "sdkgen_core",
 ]
 
 [[package]]

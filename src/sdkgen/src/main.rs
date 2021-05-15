@@ -1,7 +1,7 @@
-use emitter_csharp::CsharpSdk;
-use emitter_typescript::TypeScriptSdk;
 use indexmap::IndexMap;
 use sdkgen_core::{GenerateSdk, Route, SdkResource, SdkVersion, TypeDeclarations};
+use sdkgen_emitter_csharp::CsharpSdk;
+use sdkgen_emitter_typescript::TypeScriptSdk;
 
 fn versions_from_routes(routes: Vec<Route>) -> Vec<SdkVersion> {
     let mut versions = IndexMap::new();

@@ -7,8 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-emitter_csharp = { path = "../emitter_csharp" }
-emitter_typescript = { path = "../emitter_typescript" }
+sdkgen_emitter_csharp = { path = "../sdkgen_emitter_csharp" }
+sdkgen_emitter_typescript = { path = "../sdkgen_emitter_typescript" }
 indexmap = "1.6"
 sdkgen_adapter_openapi = { path = "../sdkgen_adapter_openapi" }
 sdkgen_core = { path = "../sdkgen_core" }
