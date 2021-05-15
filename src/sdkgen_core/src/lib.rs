@@ -49,6 +49,17 @@ impl Type {
 
         self
     }
+
+    pub fn referenced_types(&self) -> Vec<Type> {
+        match self {
+            Type::Primitive(_) | Type::Union { .. } => vec![],
+            Type::Array(ty) => vec![*ty.clone()],
+            Type::Map { key, value } => vec![*key.clone(), *value.clone()],
+            Type::Record { members, .. } => {
+                members.iter().map(|member| member.ty.clone()).collect()
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -66,7 +77,15 @@ impl TypeDeclarations {
     /// Registers a type declaration.
     pub fn register(&mut self, ty: Type) {
         if let Some(name) = ty.name() {
-            self.declarations.insert(name.to_owned(), ty);
+            self.declarations.insert(name.to_owned(), ty.clone());
+
+            self.register_referenced_types(ty);
+        }
+    }
+
+    fn register_referenced_types(&mut self, ty: Type) {
+        for ty in ty.referenced_types() {
+            self.register(ty);
         }
     }
 }
