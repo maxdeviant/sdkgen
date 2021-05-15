@@ -163,7 +163,11 @@ fn schema_to_type(openapi: &OpenApi, schema: NamedOrAnonymous<Schema>) -> Type {
 
     let mut ty = match schema.into_value().schema_kind {
         SchemaKind::Type(ty) => openapi_type_to_type(&openapi, ty),
-        _ => unimplemented!(),
+        // TODO: Finish implementing remaining schema kinds.
+        _ => Type::Map {
+            key: Box::new(Type::Primitive(Primitive::String)),
+            value: Box::new(Type::Primitive(Primitive::String)),
+        },
     };
 
     if let Some(name) = name {
