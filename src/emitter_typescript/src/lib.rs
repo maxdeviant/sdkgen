@@ -64,12 +64,12 @@ export interface {name} {{
             members = members
                 .into_iter()
                 .map(|member| format!(
-                    "{}: {}",
+                    "{}: {};",
                     TypeScriptCasingRules.to_record_member_case(member.name),
                     emit_type_name(member.ty),
                 ))
                 .collect::<Vec<_>>()
-                .join(",\n")
+                .join("\n")
         ),
         Type::Union { .. } => "".into(),
         Type::Primitive(_) | Type::Array(_) | Type::Map { .. } => "".into(),
