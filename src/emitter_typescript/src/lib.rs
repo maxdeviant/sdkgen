@@ -55,7 +55,7 @@ export interface {name} {{
     {members}
 }}
         "#,
-            name = name,
+            name = name.to_camel_case(),
             members = members
                 .into_iter()
                 .map(|member| format!(

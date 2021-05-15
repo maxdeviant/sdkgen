@@ -160,7 +160,7 @@ fn openapi_type_to_type(openapi: &OpenApi, ty: OpenApiType) -> Type {
             required,
             ..
         }) => Type::Record {
-            name: "".into(),
+            name: "No Name".into(),
             members: properties
                 .into_iter()
                 .map(|(name, schema)| {
