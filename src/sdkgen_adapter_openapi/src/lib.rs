@@ -106,7 +106,7 @@ fn operation_to_route(
         description,
         url: path.clone().replace("{", ":").replace("}", ""),
         method,
-        group: path,
+        group: operation.tags.first().unwrap_or(&path).to_string(),
         version: "".into(),
         url_parameters,
         payload_type: None,
