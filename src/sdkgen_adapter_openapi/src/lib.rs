@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+mod schema;
 
 use openapiv3::{
     ObjectType, OpenAPI as OpenApi, Operation, Parameter, ParameterData, PathItem, ReferenceOr,
@@ -6,6 +6,8 @@ use openapiv3::{
 };
 use sdkgen_core::{HttpMethod, Member, Primitive, Route, Type, UrlParameter};
 use serde_yaml;
+
+use crate::schema::resolve_schema;
 
 pub fn from_yaml(openapi_yaml: &str) -> serde_yaml::Result<Vec<Route>> {
     let openapi: OpenApi = serde_yaml::from_str(openapi_yaml)?;
@@ -123,30 +125,27 @@ fn response_to_return_type(openapi: &OpenApi, response: Response) -> Result<Type
     let schema = media_type
         .schema
         .clone()
-        .and_then(|schema| match schema {
-            ReferenceOr::Item(schema) => Some(NamedOrAnonymous::Anonymous(schema)),
-            ReferenceOr::Reference { reference } => SchemaReference::try_from(reference)
-                .ok()
-                .and_then(|schema| schema.resolve(&openapi))
-                .map(|named_schema| {
-                    NamedOrAnonymous::Named(named_schema.name, named_schema.schema)
-                }),
-        })
+        .and_then(|schema| resolve_schema(&openapi, schema))
         .ok_or_else(|| format!("No schema."))?;
 
-    let mut return_type = schema_to_type(&openapi, schema.clone().into_value());
-    if let NamedOrAnonymous::Named(name, _) = schema {
-        return_type = return_type.set_name(name);
-    }
+    let return_type = schema_to_type(&openapi, schema.clone());
 
     Ok(return_type)
 }
 
-fn schema_to_type(openapi: &OpenApi, schema: Schema) -> Type {
-    match schema.schema_kind {
+fn schema_to_type(openapi: &OpenApi, schema: NamedOrAnonymous<Schema>) -> Type {
+    let name = schema.name().cloned();
+
+    let mut ty = match schema.into_value().schema_kind {
         SchemaKind::Type(ty) => openapi_type_to_type(&openapi, ty),
         _ => unimplemented!(),
+    };
+
+    if let Some(name) = name {
+        ty = ty.set_name(name);
     }
+
+    ty
 }
 
 fn openapi_type_to_type(openapi: &OpenApi, ty: OpenApiType) -> Type {
@@ -166,24 +165,14 @@ fn openapi_type_to_type(openapi: &OpenApi, ty: OpenApiType) -> Type {
                 .map(|(name, schema)| {
                     let is_optional = !required.contains(&name);
 
-                    let schema = match schema {
-                        ReferenceOr::Item(schema) => Some(schema),
-                        ReferenceOr::Reference { reference } => {
-                            SchemaReference::try_from(reference)
-                                .ok()
-                                .and_then(|schema| {
-                                    schema
-                                        .resolve(&openapi)
-                                        .map(|schema| Box::new(schema.schema))
-                                })
-                        }
-                    };
+                    let schema = resolve_schema(&openapi, schema.unbox());
 
                     Member {
                         name,
                         description: None,
                         ty: schema
-                            .map(|schema| schema_to_type(&openapi, *schema))
+                            .clone()
+                            .map(|schema| schema_to_type(&openapi, schema))
                             .unwrap_or(Type::Primitive(Primitive::String)),
                         is_optional,
                     }
@@ -201,51 +190,16 @@ enum NamedOrAnonymous<T> {
 }
 
 impl<T> NamedOrAnonymous<T> {
+    fn name(&self) -> Option<&String> {
+        match self {
+            NamedOrAnonymous::Named(name, _) => Some(name),
+            NamedOrAnonymous::Anonymous(_) => None,
+        }
+    }
+
     fn into_value(self) -> T {
         match self {
             NamedOrAnonymous::Named(_, value) | NamedOrAnonymous::Anonymous(value) => value,
         }
-    }
-}
-
-#[derive(Debug)]
-struct NamedSchema {
-    name: String,
-    schema: Schema,
-}
-
-#[derive(Debug)]
-struct SchemaReference(String);
-
-impl SchemaReference {
-    fn resolve(&self, openapi: &OpenApi) -> Option<NamedSchema> {
-        let components = openapi.components.as_ref()?;
-        let schema_or_reference = components.schemas.get(&self.0)?;
-
-        match schema_or_reference {
-            ReferenceOr::Item(schema) => Some(NamedSchema {
-                name: self.0.clone(),
-                schema: schema.clone(),
-            }),
-            ReferenceOr::Reference { reference } => SchemaReference::try_from(reference.clone())
-                .ok()
-                .and_then(|schema| schema.resolve(openapi)),
-        }
-    }
-}
-
-impl TryFrom<String> for SchemaReference {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let schema_path = "#/components/schemas/";
-
-        if !value.starts_with(schema_path) {
-            return Err(format!("Not a schema reference: '{}'.", value));
-        }
-
-        let path = value.trim_start_matches(schema_path);
-
-        Ok(Self(path.into()))
     }
 }
