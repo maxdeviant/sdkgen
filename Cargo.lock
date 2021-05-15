@@ -29,6 +29,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "emitter_typescript"
+version = "0.1.0"
+dependencies = [
+ "heck",
+ "sdkgen_core",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -108,6 +116,7 @@ version = "0.1.0"
 dependencies = [
  "apidoc",
  "emitter_csharp",
+ "emitter_typescript",
  "sdkgen_adapter_openapi",
  "sdkgen_core",
  "serde",

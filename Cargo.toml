@@ -8,5 +8,6 @@ members = [
     "src/sdkgen_adapter_openapi",
 
     # Emitters
-    "src/emitter_csharp"
+    "src/emitter_csharp",
+    "src/emitter_typescript"
 ]

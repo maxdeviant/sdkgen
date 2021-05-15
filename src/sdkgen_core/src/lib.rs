@@ -110,13 +110,13 @@ pub struct UrlParameter {
     pub ty: Primitive,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SdkVersion {
     pub version: String,
     pub resources: Vec<SdkResource>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SdkResource {
     pub resource: String,
     pub routes: Vec<Route>,

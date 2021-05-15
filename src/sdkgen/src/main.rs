@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use apidoc;
 use emitter_csharp::CsharpSdk;
+use emitter_typescript::TypeScriptSdk;
 use sdkgen_adapter_openapi;
 use sdkgen_core::{
     GenerateSdk, HttpMethod, Primitive, Route, SdkResource, SdkVersion, Type, UrlParameter,
@@ -92,14 +93,17 @@ fn main() -> std::io::Result<()> {
 
     let versions = versions_from_routes(routes);
 
-    let csharp_output = CsharpSdk.generate_sdk(versions);
+    let csharp_output = CsharpSdk.generate_sdk(versions.clone());
+    let typescript_output = TypeScriptSdk.generate_sdk(versions);
 
     use std::fs::File;
     use std::io::prelude::*;
 
     let mut csharp_file = File::create("generated/csharp.cs")?;
-
     csharp_file.write_all(&csharp_output.as_bytes())?;
+
+    let mut typescript_file = File::create("generated/typescript.ts")?;
+    typescript_file.write_all(&typescript_output.as_bytes())?;
 
     Ok(())
 }
